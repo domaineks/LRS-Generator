@@ -90,8 +90,11 @@ body {
 }
 
 .title-icon {
-    height: 3.0rem;
-    width: auto;
+    height: 2.5rem;
+    width: 2.5rem;
+    max-width: 2.5rem;
+    max-height: 2.5rem;
+    object-fit: contain;
     vertical-align: middle;
 }
 
