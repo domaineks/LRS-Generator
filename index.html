@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>勞務報酬單產生器 | Domaineks</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="title">勞務報酬單產生器</h1>
+                <p class="subtitle">快速生成符合台灣稅法的專業勞務報酬單</p>
+            </div>
+            <div class="privacy-notice">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>本工具不會儲存任何個人資料，所有資訊僅用於生成 PDF 文件</span>
+            </div>
+        </header>
+
+        <!-- Main Form -->
+        <div class="form-container">
+            <!-- 基本資料 -->
+            <section class="form-section">
+                <h2 class="section-title">基本資料</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="name">姓名 *</label>
+                        <input type="text" id="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="nationality">國籍 *</label>
+                        <select id="nationality" required>
+                            <option value="local">本國人</option>
+                            <option value="foreign_under_183">外國人在臺未滿 183 天</option>
+                            <option value="foreign_over_183">外國人在臺待滿 183 天</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="idNumber">身分證字號 *</label>
+                        <input type="text" id="idNumber" required placeholder="A123456789">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hasHealthInsurance">是否投保健保</label>
+                        <select id="hasHealthInsurance">
+                            <option value="no">否</option>
+                            <option value="yes">是</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="hasUnion">已加入工會</label>
+                        <select id="hasUnion">
+                            <option value="no">否</option>
+                            <option value="yes">是</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">聯絡電話 *</label>
+                        <input type="tel" id="phone" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="address">戶籍地址 *</label>
+                        <input type="text" id="address" required>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 勞報資料 -->
+            <section class="form-section">
+                <h2 class="section-title">勞報資料</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="companyName">公司名稱 *</label>
+                        <input type="text" id="companyName" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="incomeType">申報類別 *</label>
+                        <select id="incomeType" required>
+                            <option value="9A">9A 執行業務所得</option>
+                            <option value="9B">9B 稿費</option>
+                            <option value="50">50 薪資所得</option>
+                            <option value="92">92 其他所得</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="amount">金額 (新台幣) *</label>
+                        <input type="number" id="amount" required min="0" step="1">
+                    </div>
+
+                    <div class="form-group full-width" id="businessTypeGroup" style="display: none;">
+                        <label for="businessType">執行業務類別</label>
+                        <select id="businessType">
+                            <option value="">請選擇</option>
+                            <option value="98" data-rate="0.30">98 - 非自行出版之稿費、版稅等 (費用率 30%)</option>
+                            <option value="99" data-rate="0.75">99 - 自行出版之稿費、版稅等 (費用率 75%)</option>
+                        </select>
+                        <small class="form-help">
+                            <a href="https://www.ntbt.gov.tw/singlehtml/41b136966f62409ea8893b95610f1e6c?cntId=7a3c8aebf51e48678e68e1660a596b26" target="_blank">執行業務者業別代號對照表</a>
+                        </small>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="description">勞務內容 *</label>
+                        <textarea id="description" required rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="startDate">勞務開始日期 *</label>
+                        <input type="date" id="startDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="endDate">勞務結束日期 *</label>
+                        <input type="date" id="endDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="fillDate">填表日期 *</label>
+                        <input type="date" id="fillDate" required>
+                    </div>
+                </div>
+
+                <!-- 金額試算結果 -->
+                <div class="calculation-result">
+                    <h3>金額試算</h3>
+                    <div class="calc-grid">
+                        <div class="calc-item">
+                            <span class="calc-label">所得總金額</span>
+                            <span class="calc-value" id="totalIncome">0</span>
+                        </div>
+                        <div class="calc-item">
+                            <span class="calc-label">代扣所得稅</span>
+                            <span class="calc-value" id="withholdTax">0</span>
+                        </div>
+                        <div class="calc-item">
+                            <span class="calc-label">二代健保費</span>
+                            <span class="calc-value" id="healthFee">0</span>
+                        </div>
+                        <div class="calc-item highlight">
+                            <span class="calc-label">實際支付金額</span>
+                            <span class="calc-value" id="netAmount">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 支付資料 -->
+            <section class="form-section">
+                <h2 class="section-title">支付資料 <span class="optional"></span></h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="paymentMethod">付款方式</label>
+                        <select id="paymentMethod">
+                            <option value="transfer">匯款</option>
+                            <!-- <option value="cash">現金</option>
+                            <option value="check">支票</option>
+                            <option value="voucher">禮券</option> -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bankName">所得人銀行</label>
+                        <select id="bankName">
+                            <option value="">請選擇銀行</option>
+                            <option value="無">無</option>
+                            <option value="004 臺灣銀行">004 臺灣銀行</option>
+                            <option value="005 土地銀行">005 土地銀行</option>
+                            <option value="006 合庫商銀">006 合庫商銀</option>
+                            <option value="007 第一銀行">007 第一銀行</option>
+                            <option value="008 華南銀行">008 華南銀行</option>
+                            <option value="009 彰化銀行">009 彰化銀行</option>
+                            <option value="011 上海銀行">011 上海銀行</option>
+                            <option value="012 台北富邦">012 台北富邦</option>
+                            <option value="013 國泰世華">013 國泰世華</option>
+                            <option value="017 兆豐銀行">017 兆豐銀行</option>
+                            <option value="050 臺灣企銀">050 臺灣企銀</option>
+                            <option value="052 渣打商銀">052 渣打商銀</option>
+                            <option value="053 台中銀行">053 台中銀行</option>
+                            <option value="700 中華郵政">700 中華郵政</option>
+                            <option value="803 聯邦銀行">803 聯邦銀行</option>
+                            <option value="805 遠東銀行">805 遠東銀行</option>
+                            <option value="806 元大銀行">806 元大銀行</option>
+                            <option value="807 永豐銀行">807 永豐銀行</option>
+                            <option value="808 玉山銀行">808 玉山銀行</option>
+                            <option value="809 凱基銀行">809 凱基銀行</option>
+                            <option value="812 台新銀行">812 台新銀行</option>
+                            <option value="822 中國信託">822 中國信託</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bankBranch">銀行分行</label>
+                        <input type="text" id="bankBranch">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="accountNumber">所得人帳號</label>
+                        <input type="text" id="accountNumber">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="accountName">所得人戶名</label>
+                        <input type="text" id="accountName">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 身分證影本 -->
+            <section class="form-section">
+                <h2 class="section-title">身分證影本 <span class="optional"></span></h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="idCardImage">身分證正面</label>
+                        <input type="file" id="idCardImage" accept="image/*">
+                        <small class="form-help">請上傳身分證正面影本 (JPG, PNG)</small>
+                        <div id="idCardPreview" class="image-preview" style="display: none;">
+                            <img id="idCardPreviewImg" alt="身分證正面預覽">
+                            <button type="button" class="btn-remove-image" onclick="removeIdCardImage()">移除圖片</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="idCardBackImage">身分證反面</label>
+                        <input type="file" id="idCardBackImage" accept="image/*">
+                        <small class="form-help">請上傳身分證反面影本 (JPG, PNG)</small>
+                        <div id="idCardBackPreview" class="image-preview" style="display: none;">
+                            <img id="idCardBackPreviewImg" alt="身分證反面預覽">
+                            <button type="button" class="btn-remove-image" onclick="removeIdCardBackImage()">移除圖片</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Action Buttons -->
+            <div class="actions">
+                <button type="button" class="btn btn-tertiary" onclick="loadSampleData()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    載入範例資料
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="resetForm()">重設表單</button>
+                <button type="button" class="btn btn-primary" onclick="generatePDF()">下載勞報單 PDF</button>
+            </div>
+        </div>
+
+        <!-- PDF Preview Template (Hidden) -->
+        <div id="pdfTemplate" style="display: none;">
+            <div class="pdf-document">
+                <div class="pdf-header">
+                    <div class="pdf-title-row">
+                        <h1 class="pdf-title" id="pdfCompanyName"></h1>
+                        <h2 class="pdf-subtitle">勞務報酬單</h2>
+                    </div>
+                    <div class="pdf-date">填表日期：<span id="pdfFillDate"></span></div>
+                </div>
+
+                <div class="pdf-section">
+                    <h3 class="pdf-section-title">所得人資料</h3>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <span class="pdf-checkbox">☑</span>
+                            <span id="pdfNationality"></span>
+                        </div>
+                    </div>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <strong>姓名：</strong><span id="pdfName"></span>
+                        </div>
+                        <div class="pdf-field">
+                            <strong>身分證字號：</strong><span id="pdfIdNumber"></span>
+                        </div>
+                    </div>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <strong>戶籍地址：</strong><span id="pdfAddress"></span>
+                        </div>
+                        <div class="pdf-field">
+                            <strong>聯絡電話：</strong><span id="pdfPhone"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-section">
+                    <h3 class="pdf-section-title">勞務內容</h3>
+                    <div class="pdf-description" id="pdfDescription"></div>
+                    <div class="pdf-row">
+                        <div class="pdf-field full">
+                            <strong>期間：</strong>自 <span id="pdfStartDate"></span> 至 <span id="pdfEndDate"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-section">
+                    <h3 class="pdf-section-title">所得類別</h3>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <span class="pdf-checkbox">☑</span>
+                            <span id="pdfIncomeType"></span>
+                        </div>
+                    </div>
+                    <div class="pdf-note" id="pdfNote"></div>
+                </div>
+
+                <div class="pdf-section highlight">
+                    <h3 class="pdf-section-title">領款金額</h3>
+                    <div class="pdf-amounts">
+                        <div class="pdf-amount-row">
+                            <span>支領金額：</span>
+                            <strong id="pdfTotalIncome"></strong>
+                        </div>
+                        <div class="pdf-amount-row">
+                            <span>代扣所得稅：</span>
+                            <strong id="pdfWithholdTax"></strong>
+                        </div>
+                        <div class="pdf-amount-row">
+                            <span>二代健保費：</span>
+                            <strong id="pdfHealthFee"></strong>
+                        </div>
+                        <div class="pdf-amount-row total">
+                            <span>支領淨額：</span>
+                            <strong id="pdfNetAmount"></strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-section" id="pdfPaymentSection" style="display: none;">
+                    <h3 class="pdf-section-title">支付資料</h3>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <strong>銀行名稱：</strong><span id="pdfBankName"></span>
+                        </div>
+                        <div class="pdf-field">
+                            <strong>銀行分行：</strong><span id="pdfBankBranch"></span>
+                        </div>
+                    </div>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <strong>所得人帳號：</strong><span id="pdfAccountNumber"></span>
+                        </div>
+                        <div class="pdf-field">
+                            <strong>所得人戶名：</strong><span id="pdfAccountName"></span>
+                        </div>
+                    </div>
+                    <div class="pdf-row">
+                        <div class="pdf-field">
+                            <strong>付款方式：</strong>
+                            <span class="pdf-checkbox">☑</span>
+                            <span id="pdfPaymentMethod"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-section" id="pdfIdCardSection" style="display: none;">
+                    <h3 class="pdf-section-title">身分證影本</h3>
+                    <div class="pdf-row pdf-id-cards-row">
+                        <div class="pdf-field" id="pdfIdCardFrontField" style="display: none;">
+                            <strong>正面：</strong>
+                            <div class="pdf-id-card-image">
+                                <img id="pdfIdCardImage" alt="身分證正面影本">
+                            </div>
+                        </div>
+                        <div class="pdf-field" id="pdfIdCardBackField" style="display: none;">
+                            <strong>反面：</strong>
+                            <div class="pdf-id-card-image">
+                                <img id="pdfIdCardBackImage" alt="身分證反面影本">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pdf-signature">
+                    <div class="signature-box">
+                        <div class="signature-label">領款人簽名</div>
+                        <div class="signature-line">_______________________</div>
+                    </div>
+                    <div class="signature-box">
+                        <div class="signature-label">會計/經辦人</div>
+                        <div class="signature-line">_______________________</div>
+                    </div>
+                </div>
+
+                <div class="pdf-footer">
+                    <p>© 2025 Domaineks Co., Ltd.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>© 2025 Domaineks Co., Ltd. | 本工具僅供參考使用，實際申報請依主管機關規定辦理</p>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
