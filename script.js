@@ -589,7 +589,7 @@ function fillPDFTemplate(data, calculations) {
             'check': '支票',
             'voucher': '禮券'
         };
-        document.getElementById('pdfPaymentMethod').textContent = paymentMethodMap[data.paymentMethod];
+        // document.getElementById('pdfPaymentMethod').textContent = paymentMethodMap[data.paymentMethod];
     } else {
         paymentSection.style.display = 'none';
     }
