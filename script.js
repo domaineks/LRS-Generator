@@ -631,17 +631,17 @@ function loadSampleData() {
     const endDate = new Date(today);
     endDate.setDate(today.getDate() - 1);
     
-    document.getElementById('startDate').value = startDate.toISOString().split('T')[0];
-    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
-    document.getElementById('fillDate').value = today.toISOString().split('T')[0];
-    document.getElementById('companyName').value = '域嘉有限公司';
+    document.getElementById('startDate').value = '2026/05/05';
+    document.getElementById('endDate').value = '2026/06/04';
+    document.getElementById('fillDate').value = '2026/06/05';
+    document.getElementById('companyName').value = '智桓科技有限公司';
     
     // 支付資料
     document.getElementById('paymentMethod').value = 'transfer';
-    document.getElementById('bankName').value = '808 玉山銀行';
+    document.getElementById('bankName').value = '013 國泰世華';
     document.getElementById('bankBranch').value = '營業部';
     document.getElementById('accountNumber').value = '1234567890123';
-    document.getElementById('accountName').value = '王小明';
+    document.getElementById('accountName').value = '林小明';
     
     // 觸發執行業務類別顯示
     toggleBusinessType();
