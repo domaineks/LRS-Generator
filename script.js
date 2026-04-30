@@ -631,9 +631,9 @@ function loadSampleData() {
     const endDate = new Date(today);
     endDate.setDate(today.getDate() - 1);
     
-    document.getElementById('startDate').value = '2026/05/05';
-    document.getElementById('endDate').value = '2026/06/04';
-    document.getElementById('fillDate').value = '2026/06/05';
+    document.getElementById('startDate').value = '2026-05-05';
+    document.getElementById('endDate').value = '2026-06-04';
+    document.getElementById('fillDate').value = '2026-06-05';
     document.getElementById('companyName').value = '智桓科技有限公司';
     
     // 支付資料
