@@ -613,7 +613,7 @@ function resetForm() {
 // 載入範例資料
 function loadSampleData() {
     // 基本資料
-    document.getElementById('name').value = '王小明';
+    document.getElementById('name').value = '林小明';
     document.getElementById('idNumber').value = 'A123456789';
     document.getElementById('hasUnion').value = 'no';
     document.getElementById('address').value = '台北市信義區信義路五段7號';
