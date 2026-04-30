@@ -1,32 +1,25 @@
-// 台灣稅法常數 (2025年)
+// 台灣稅法常數 (2026年)
 const TAX_CONSTANTS = {
-    SALARY_SPECIAL_DEDUCTION: 218000, // 薪資特別扣除額
-    ARTICLE_9B_EXEMPTION: 180000, // 9B稿費免稅額
-    ARTICLE_9B_EXPENSE_RATE: 0.30, // 9B稿費費用率
     SUPPLEMENTARY_HEALTH_RATE: 0.0211, // 二代健保補充保費率
-    MIN_WAGE: 28590, // 基本工資 (2024年)
-    
-    // 扣繳率
+    MIN_WAGE: 29500, // 基本工資 (2026年/115年)
+    SUPPLEMENTARY_HEALTH_THRESHOLD: 20000, // 9A/9B 補充保費門檻
+
+    // 115年度薪資所得扣繳稅額表估算基礎。
+    // 官方扣繳表編製採：免稅額101,000 + 有配偶者標準扣除額272,000 + 薪資所得特別扣除額227,000 = 600,000。
+    // 注意：這是「每月薪資扣繳表」估算基礎，不是單身年度綜所稅申報時的實際扣除額。
+    SALARY_WITHHOLDING_YEARLY_DEDUCTION_BASE: 600000,
+    SALARY_WITHHOLDING_DEPENDENT_DEDUCTION: 101000,
+    SALARY_WITHHOLDING_DEPENDENTS: 0,
+
+    // 扣繳率/門檻
     WITHHOLD_RATES: {
         LOCAL: {
-            '50': { threshold: 88501, rate: 0.05 },
+            // 50 薪資所得改由 calculateSalaryWithholding2026() 依 115 年度薪資扣繳公式試算
+            '50': { threshold: 90501, rate: null },
             '9A': { threshold: 20001, rate: 0.10 },
             '9B': { threshold: 20001, rate: 0.10 },
             '92': { threshold: Infinity, rate: 0 }
         },
-        FOREIGN_UNDER_183: {
-            '50': { threshold: 42885, lowRate: 0.06, highRate: 0.18 },
-            '9A': { threshold: 0, rate: 0.20 },
-            '9B': { threshold: 5000, rate: 0.20 },
-            '92': { threshold: 0, rate: 0.20 }
-        },
-        FOREIGN_OVER_183: {
-            // 視同本國人
-            '50': { threshold: 88501, rate: 0.05 },
-            '9A': { threshold: 20001, rate: 0.10 },
-            '9B': { threshold: 20001, rate: 0.10 },
-            '92': { threshold: Infinity, rate: 0 }
-        }
     }
 };
 
@@ -40,7 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('incomeType').addEventListener('change', toggleBusinessType);
     
     // 監聽金額輸入，即時計算
-    const calcTriggers = ['amount', 'incomeType', 'nationality', 'hasUnion', 'businessType'];
+    const calcTriggers = ['amount', 'incomeType', 'hasUnion'];
     calcTriggers.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -155,95 +148,105 @@ function removeIdCardBackImage() {
     document.getElementById('idCardBackPreviewImg').src = '';
 }
 
-// 顯示/隱藏執行業務類別
+// 監聽申報類別變更
 function toggleBusinessType() {
-    const incomeType = document.getElementById('incomeType').value;
-    const businessTypeGroup = document.getElementById('businessTypeGroup');
-    
-    // if (incomeType === '9A') {
-    //     businessTypeGroup.style.display = 'block';
-    // } else {
-    //     businessTypeGroup.style.display = 'none';
-    // }
-    
     calculateAmounts();
+}
+
+// 四捨五入到整數元
+function roundCurrency(amount) {
+    return Math.round(amount);
+}
+
+// 薪資扣繳稅額表採 10 元為單位；用無條件捨去到 10 元，較接近官方表格呈現。
+function floorToTen(amount) {
+    return Math.floor(amount / 10) * 10;
+}
+
+// 115年度綜合所得稅級距，用於 2026 年給付薪資之扣繳估算。
+function calculateProgressiveTax2026(taxableIncome) {
+    if (taxableIncome <= 0) return 0;
+
+    const brackets = [
+        { limit: 610000, rate: 0.05, deduction: 0 },
+        { limit: 1380000, rate: 0.12, deduction: 42700 },
+        { limit: 2770000, rate: 0.20, deduction: 153100 },
+        { limit: 5190000, rate: 0.30, deduction: 430100 },
+        { limit: Infinity, rate: 0.40, deduction: 949100 }
+    ];
+
+    const bracket = brackets.find(item => taxableIncome <= item.limit);
+    return taxableIncome * bracket.rate - bracket.deduction;
+}
+
+// 將月薪對齊官方薪資扣繳表 500 元級距的下限，以貼近官方表格數字。
+// 115 年度扣繳表：90,501～91,000、91,001～91,500 ...，各級距以下限計算。
+function normalizeSalaryForWithholdingTable(monthlySalary) {
+    const threshold = TAX_CONSTANTS.WITHHOLD_RATES.LOCAL['50'].threshold;
+    if (monthlySalary < threshold) return monthlySalary;
+    return threshold + Math.floor((monthlySalary - threshold) / 500) * 500;
+}
+
+// 50 薪資所得：依 115 年度薪資所得扣繳稅額表公式估算。
+// 預設無配偶及受扶養親屬 0 人；若要精準處理扶養人數，建議再加 UI 欄位。
+function calculateSalaryWithholding2026(monthlySalary) {
+    if (monthlySalary <= 0) return 0;
+    if (monthlySalary < TAX_CONSTANTS.WITHHOLD_RATES.LOCAL['50'].threshold) return 0;
+
+    const deductionBase = TAX_CONSTANTS.SALARY_WITHHOLDING_YEARLY_DEDUCTION_BASE
+        + (TAX_CONSTANTS.SALARY_WITHHOLDING_DEPENDENTS * TAX_CONSTANTS.SALARY_WITHHOLDING_DEPENDENT_DEDUCTION);
+
+    const tableSalary = normalizeSalaryForWithholdingTable(monthlySalary);
+    const estimatedAnnualSalary = tableSalary * 12;
+    const estimatedTaxableIncome = Math.max(estimatedAnnualSalary - deductionBase, 0);
+    const annualTax = calculateProgressiveTax2026(estimatedTaxableIncome);
+    const monthlyWithholding = annualTax / 12;
+
+    // 官方表格低於或等於 2,000 元者不列扣繳。
+    if (monthlyWithholding <= 2000) return 0;
+
+    return floorToTen(monthlyWithholding);
 }
 
 // 計算金額
 function calculateAmounts() {
     const amount = parseFloat(document.getElementById('amount').value) || 0;
     const incomeType = document.getElementById('incomeType').value;
-    const nationality = document.getElementById('nationality').value;
-    const hasUnion = document.getElementById('hasUnion').value === 'yes';
-    const businessType = document.getElementById('businessType').value;
+    const hasNhiExemption = document.getElementById('hasUnion').value === 'yes';
     
     let totalIncome = amount;
     let withholdTax = 0;
     let healthFee = 0;
     
     // 計算扣繳稅額
-    if (nationality === 'local' || nationality === 'foreign_over_183') {
-        // 本國人或外國人滿183天
-        const rates = TAX_CONSTANTS.WITHHOLD_RATES.LOCAL;
-        
-        switch(incomeType) {
-            case '50': // 薪資所得
-                if (amount >= rates['50'].threshold) {
-                    withholdTax = amount * rates['50'].rate;
-                }
-                break;
-            case '9A': // 執行業務所得
-                if (amount >= rates['9A'].threshold) {
-                    withholdTax = amount * rates['9A'].rate;
-                }
-                break;
-            case '9B': // 稿費
-                if (amount >= rates['9B'].threshold) {
-                    withholdTax = amount * rates['9B'].rate;
-                }
-                break;
-            case '92': // 其他所得
-                // 不扣繳
-                break;
-        }
-    } else if (nationality === 'foreign_under_183') {
-        // 外國人未滿183天
-        const rates = TAX_CONSTANTS.WITHHOLD_RATES.FOREIGN_UNDER_183;
-        
-        switch(incomeType) {
-            case '50': // 薪資所得
-                if (amount <= rates['50'].threshold) {
-                    withholdTax = amount * rates['50'].lowRate;
-                } else {
-                    withholdTax = amount * rates['50'].highRate;
-                }
-                break;
-            case '9A': // 執行業務所得
-                withholdTax = amount * rates['9A'].rate;
-                break;
-            case '9B': // 稿費
-                if (amount > rates['9B'].threshold) {
-                    withholdTax = amount * rates['9B'].rate;
-                }
-                break;
-            case '92': // 其他所得
-                withholdTax = amount * rates['92'].rate;
-                break;
-        }
+    const rates = TAX_CONSTANTS.WITHHOLD_RATES.LOCAL;
+    
+    switch(incomeType) {
+        case '50': // 薪資所得
+            withholdTax = calculateSalaryWithholding2026(amount);
+            break;
+        case '9A': // 執行業務所得
+            if (amount >= rates['9A'].threshold) {
+                withholdTax = roundCurrency(amount * rates['9A'].rate);
+            }
+            break;
+        case '9B': // 稿費
+            if (amount >= rates['9B'].threshold) {
+                withholdTax = roundCurrency(amount * rates['9B'].rate);
+            }
+            break;
+        case '92': // 其他所得
+            // 不扣繳
+            break;
     }
     
     // 計算二代健保補充保費
-    if (!hasUnion && incomeType !== '92') {
-        if (incomeType === '50') {
-            // 薪資所得：達基本工資才扣
-            if (amount >= TAX_CONSTANTS.MIN_WAGE) {
-                healthFee = amount * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE;
-            }
-        } else if (incomeType === '9A' || incomeType === '9B') {
-            // 執行業務或稿費：達20,000才扣
-            if (amount >= 20000) {
-                healthFee = amount * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE;
-            }
+    // 這份表單的 50 薪資所得預設為固定薪資/一般薪資，不處理「非所屬投保單位兼職薪資」的補充保費。
+    // 9A/9B 則依單次給付達 20,000 元時試算 2.11%。
+    // 若個案符合免扣資格，則不扣補充保費。
+    if (!hasNhiExemption && (incomeType === '9A' || incomeType === '9B')) {
+        if (amount >= TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_THRESHOLD) {
+            healthFee = roundCurrency(amount * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE);
         }
     }
     
@@ -277,41 +280,24 @@ function formatDate(dateString) {
     return `${year}年${month}月${day}日`;
 }
 
-// 取得國籍文字
-function getNationalityText(value) {
-    const map = {
-        'local': '本國籍',
-        'foreign_under_183': '外國籍在台未滿 183 天',
-        'foreign_over_183': '外國籍在台滿 183 天'
-    };
-    return map[value] || value;
-}
-
 // 取得申報類別說明
-function getIncomeTypeDescription(incomeType, nationality) {
+function getIncomeTypeDescription(incomeType) {
     const descriptions = {
         'local': {
-            '50': '全數計入所得，但可扣除薪資特別扣除額(114年為21.8萬元)。達88,501元，須代扣所得稅5%。金額達基本工資(114年為28,590元)，須負擔2.11%補充保費。提供職業工會的健保加保證明，不須扣2.11%補充保費。',
-            '9A': '無免稅額，扣除所屬類別費用率後計入個人所得。達20,001元，需代扣所得稅10%與扣繳2.11%補充保費。達20,000元，需扣繳2.11%補充保費。提供職業工會的健保加保證明，不須扣2.11%補充保費。',
-            '9B': '可先扣18萬免稅額，再扣除30%費用後計入個人所得。達20,001元，需代扣所得稅10%與扣繳2.11%補充保費。達20,000元，需扣繳2.11%補充保費。提供職業工會的健保加保證明，不須扣2.11%補充保費。',
-            '92': '不須扣繳、不須2.11%補充保費。'
-        },
-        'foreign': {
-            '50': '114年薪資42,885元以下扣繳6%、逾42,885元扣繳18%。',
-            '9A': '均須扣繳20%。',
-            '9B': '領款金額不超過5,000元不須扣繳，逾5,000元須扣繳20%。',
-            '92': '均須扣繳20%。'
+            '50': '全數計入所得。2026年給付屬115年度所得，本工具依115年度薪資所得扣繳表公式試算，預設無配偶及受扶養親屬0人；薪資所得特別扣除額為22.7萬元。本工具的50薪資所得預設為固定薪資/一般薪資，不計算二代健保補充保費；若為非所屬投保單位給付的兼職薪資，請另行確認補充保費規則。',
+            '9A': '執行業務所得。達20,001元，需代扣所得稅10%。單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。個人年度申報時可依所屬類別費用率或相關規定計算。',
+            '9B': '稿費、版稅、樂譜、作曲、編劇、漫畫及講演鐘點費等。個人年度合計18萬元內免稅，超過部分通常可再按30%費用率計算。達20,001元，需代扣所得稅10%；單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。',
+            '92': '其他所得。本工具預設不扣繳、不試算2.11%補充保費；實際仍應依所得性質確認。'
         }
     };
-    
-    const category = (nationality === 'foreign_under_183') ? 'foreign' : 'local';
-    return descriptions[category][incomeType] || '';
+
+    return descriptions['local'][incomeType] || '';
 }
 
 // 驗證表單
 function validateForm() {
     const requiredFields = [
-        'name', 'nationality', 'idNumber', 'address', 'phone',
+        'name', 'idNumber', 'address', 'phone',
         'incomeType', 'amount', 'description', 'startDate', 'endDate',
         'fillDate', 'companyName'
     ];
@@ -346,7 +332,7 @@ function validateForm() {
 }
 
 // 生成 PDF
-async function generatePDF() {
+async function generatePDF(event) {
     if (!validateForm()) {
         return;
     }
@@ -354,14 +340,11 @@ async function generatePDF() {
     // 取得表單數據
     const formData = {
         name: document.getElementById('name').value.trim(),
-        nationality: document.getElementById('nationality').value,
         idNumber: document.getElementById('idNumber').value.trim(),
-        hasHealthInsurance: document.getElementById('hasHealthInsurance').value,
         hasUnion: document.getElementById('hasUnion').value,
         address: document.getElementById('address').value.trim(),
         phone: document.getElementById('phone').value.trim(),
         incomeType: document.getElementById('incomeType').value,
-        businessType: document.getElementById('businessType').value,
         amount: parseFloat(document.getElementById('amount').value),
         description: document.getElementById('description').value.trim(),
         startDate: document.getElementById('startDate').value,
@@ -506,7 +489,7 @@ function fillPDFTemplate(data, calculations) {
     // 基本資料
     document.getElementById('pdfCompanyName').textContent = data.companyName;
     document.getElementById('pdfFillDate').textContent = formatDate(data.fillDate);
-    document.getElementById('pdfNationality').textContent = getNationalityText(data.nationality);
+    document.getElementById('pdfNhiExemption').textContent = data.hasUnion === 'yes' ? '是' : '否';
     document.getElementById('pdfName').textContent = data.name;
     document.getElementById('pdfIdNumber').textContent = data.idNumber;
     document.getElementById('pdfAddress').textContent = data.address;
@@ -559,7 +542,7 @@ function fillPDFTemplate(data, calculations) {
     document.getElementById('pdfIncomeType').textContent = incomeTypeMap[data.incomeType];
     
     // 注意事項
-    const noteText = getIncomeTypeDescription(data.incomeType, data.nationality);
+    const noteText = getIncomeTypeDescription(data.incomeType);
     const noteElement = document.getElementById('pdfNote');
     if (noteText) {
         noteElement.textContent = '注意事項：' + noteText;
@@ -615,14 +598,9 @@ function resetForm() {
         // 重新設定預設值
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('fillDate').value = today;
-        document.getElementById('nationality').value = 'local';
-        document.getElementById('hasHealthInsurance').value = 'no';
         document.getElementById('hasUnion').value = 'no';
-        document.getElementById('incomeType').value = '9B';
+        document.getElementById('incomeType').value = '9A';
         document.getElementById('paymentMethod').value = 'transfer';
-        
-        // 隱藏執行業務類別
-        document.getElementById('businessTypeGroup').style.display = 'none';
         
         // 重新計算
         calculateAmounts();
@@ -636,9 +614,7 @@ function resetForm() {
 function loadSampleData() {
     // 基本資料
     document.getElementById('name').value = '王小明';
-    document.getElementById('nationality').value = 'local';
     document.getElementById('idNumber').value = 'A123456789';
-    document.getElementById('hasHealthInsurance').value = 'no';
     document.getElementById('hasUnion').value = 'no';
     document.getElementById('address').value = '台北市信義區信義路五段7號';
     document.getElementById('phone').value = '0912345678';

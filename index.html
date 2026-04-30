@@ -43,29 +43,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="nationality">國籍 *</label>
-                        <select id="nationality" required>
-                            <option value="local">本國人</option>
-                            <option value="foreign_under_183">外國人在臺未滿 183 天</option>
-                            <option value="foreign_over_183">外國人在臺待滿 183 天</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
                         <label for="idNumber">身分證字號 *</label>
                         <input type="text" id="idNumber" required placeholder="A123456789">
                     </div>
 
                     <div class="form-group">
-                        <label for="hasHealthInsurance">是否投保健保</label>
-                        <select id="hasHealthInsurance">
-                            <option value="no">否</option>
-                            <option value="yes">是</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="hasUnion">已加入工會</label>
+                        <label for="hasUnion">符合二代健保免扣資格</label>
                         <select id="hasUnion">
                             <option value="no">否</option>
                             <option value="yes">是</option>
@@ -106,18 +89,6 @@
                     <div class="form-group">
                         <label for="amount">金額 (新台幣) *</label>
                         <input type="number" id="amount" required min="0" step="1">
-                    </div>
-
-                    <div class="form-group full-width" id="businessTypeGroup" style="display: none;">
-                        <label for="businessType">執行業務類別</label>
-                        <select id="businessType">
-                            <option value="">請選擇</option>
-                            <option value="98" data-rate="0.30">98 - 非自行出版之稿費、版稅等 (費用率 30%)</option>
-                            <option value="99" data-rate="0.75">99 - 自行出版之稿費、版稅等 (費用率 75%)</option>
-                        </select>
-                        <small class="form-help">
-                            <a href="https://www.ntbt.gov.tw/singlehtml/41b136966f62409ea8893b95610f1e6c?cntId=7a3c8aebf51e48678e68e1660a596b26" target="_blank">執行業務者業別代號對照表</a>
-                        </small>
                     </div>
 
                     <div class="form-group full-width">
@@ -261,7 +232,7 @@
                     載入範例資料
                 </button>
                 <button type="button" class="btn btn-secondary" onclick="resetForm()">重設表單</button>
-                <button type="button" class="btn btn-primary" onclick="generatePDF()">下載勞報單 PDF</button>
+                <button type="button" class="btn btn-primary" onclick="generatePDF(event)">下載勞報單 PDF</button>
             </div>
         </div>
 
@@ -280,8 +251,7 @@
                     <h3 class="pdf-section-title">所得人資料</h3>
                     <div class="pdf-row">
                         <div class="pdf-field">
-                            <span class="pdf-checkbox">☑</span>
-                            <span id="pdfNationality"></span>
+                            <strong>二代健保免扣資格：</strong><span id="pdfNhiExemption"></span>
                         </div>
                     </div>
                     <div class="pdf-row">
@@ -403,14 +373,14 @@
                 </div>
 
                 <div class="pdf-footer">
-                    <p>© 2025 Domaineks Co., Ltd.</p>
+                    <p>© 2026 Domaineks Co., Ltd.</p>
                 </div>
             </div>
         </div>
 
         <!-- Footer -->
         <footer class="footer">
-            <p>© 2025 Domaineks Co., Ltd. | 本工具僅供參考使用，實際申報請依主管機關規定辦理</p>
+            <p>© 2026 Domaineks Co., Ltd. | 本工具僅供參考使用，實際申報請依主管機關規定辦理</p>
         </footer>
     </div>
 
