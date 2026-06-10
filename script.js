@@ -16,8 +16,8 @@ const TAX_CONSTANTS = {
         LOCAL: {
             // 50 薪資所得改由 calculateSalaryWithholding2026() 依 115 年度薪資扣繳公式試算
             '50': { threshold: 90501, rate: null },
-            '9A': { threshold: 20001, rate: 0.10 },
-            '9B': { threshold: 20001, rate: 0.10 },
+            '9A': { threshold: 20001, rate: null },
+            '9B': { threshold: 20001, rate: null },
             '92': { threshold: Infinity, rate: 0 }
         },
     }
@@ -31,9 +31,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 監聽申報類別變更
     document.getElementById('incomeType').addEventListener('change', toggleBusinessType);
+
+    // 監聽是否為獎金變更（控制投保金額欄位顯示）
+    document.getElementById('isBonus').addEventListener('change', function() {
+        const insuredAmountGroup = document.getElementById('insuredAmountGroup');
+        insuredAmountGroup.style.display = this.value === 'yes' ? '' : 'none';
+        calculateAmounts();
+    });
     
     // 監聽金額輸入，即時計算
-    const calcTriggers = ['amount', 'incomeType', 'hasUnion'];
+    const calcTriggers = ['amount', 'incomeType', 'hasUnion', 'isBonus', 'insuredAmount'];
     calcTriggers.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
@@ -150,6 +157,19 @@ function removeIdCardBackImage() {
 
 // 監聽申報類別變更
 function toggleBusinessType() {
+    const incomeType = document.getElementById('incomeType').value;
+    const isBonusGroup = document.getElementById('isBonusGroup');
+    const insuredAmountGroup = document.getElementById('insuredAmountGroup');
+
+    if (incomeType === '50') {
+        isBonusGroup.style.display = '';
+        const isBonus = document.getElementById('isBonus').value === 'yes';
+        insuredAmountGroup.style.display = isBonus ? '' : 'none';
+    } else {
+        isBonusGroup.style.display = 'none';
+        insuredAmountGroup.style.display = 'none';
+    }
+
     calculateAmounts();
 }
 
@@ -223,7 +243,14 @@ function calculateAmounts() {
     
     switch(incomeType) {
         case '50': // 薪資所得
-            withholdTax = calculateSalaryWithholding2026(amount);
+            if (document.getElementById('isBonus').value === 'yes') {
+                // 獎金：達 90,501 元依扣繳辦法第 13 條按 5% 扣繳
+                if (amount >= TAX_CONSTANTS.WITHHOLD_RATES.LOCAL['50'].threshold) {
+                    withholdTax = roundCurrency(amount * 0.05);
+                }
+            } else {
+                withholdTax = calculateSalaryWithholding2026(amount);
+            }
             break;
         case '9A': // 執行業務所得
             if (amount >= rates['9A'].threshold) {
@@ -241,12 +268,22 @@ function calculateAmounts() {
     }
     
     // 計算二代健保補充保費
-    // 這份表單的 50 薪資所得預設為固定薪資/一般薪資，不處理「非所屬投保單位兼職薪資」的補充保費。
-    // 9A/9B 則依單次給付達 20,000 元時試算 2.11%。
-    // 若個案符合免扣資格，則不扣補充保費。
-    if (!hasNhiExemption && (incomeType === '9A' || incomeType === '9B')) {
-        if (amount >= TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_THRESHOLD) {
-            healthFee = roundCurrency(amount * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE);
+    // 9A/9B：單次給付達 20,000 元試算 2.11%。
+    // 50 薪資（獎金）：超過當月投保金額 4 倍的部分才計算 2.11%。
+    if (!hasNhiExemption) {
+        if (incomeType === '9A' || incomeType === '9B') {
+            if (amount >= TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_THRESHOLD) {
+                healthFee = roundCurrency(amount * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE);
+            }
+        } else if (incomeType === '50') {
+            const isBonus = document.getElementById('isBonus').value === 'yes';
+            if (isBonus) {
+                const insuredAmount = parseFloat(document.getElementById('insuredAmount').value) || 0;
+                const threshold = insuredAmount * 4;
+                if (insuredAmount > 0 && amount > threshold) {
+                    healthFee = roundCurrency((amount - threshold) * TAX_CONSTANTS.SUPPLEMENTARY_HEALTH_RATE);
+                }
+            }
         }
     }
     
@@ -284,9 +321,9 @@ function formatDate(dateString) {
 function getIncomeTypeDescription(incomeType) {
     const descriptions = {
         'local': {
-            '50': '全數計入所得。2026年給付屬115年度所得，本工具依115年度薪資所得扣繳表公式試算，預設無配偶及受扶養親屬0人；薪資所得特別扣除額為22.7萬元。本工具的50薪資所得預設為固定薪資/一般薪資，不計算二代健保補充保費；若為非所屬投保單位給付的兼職薪資，請另行確認補充保費規則。',
-            '9A': '執行業務所得。達20,001元，需代扣所得稅10%。單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。個人年度申報時可依所屬類別費用率或相關規定計算。',
-            '9B': '稿費、版稅、樂譜、作曲、編劇、漫畫及講演鐘點費等。個人年度合計18萬元內免稅，超過部分通常可再按30%費用率計算。達20,001元，需代扣所得稅10%；單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。',
+            '50': '全數計入所得。2026年給付屬115年度所得，本工具依115年度薪資所得扣繳表公式試算，預設無配偶及受扶養親屬0人；薪資所得特別扣除額為22.7萬元。若此筆為獎金，且獎金超過當月投保金額4倍，超過部分需扣2.11%二代健保補充保費。',
+            '9A': '執行業務所得。單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。個人年度申報時可依所屬類別費用率或相關規定計算。',
+            '9B': '稿費、版稅、樂譜、作曲、編劇、漫畫及講演鐘點費等。個人年度合計18萬元內免稅，超過部分通常可再按30%費用率計算。單次給付達20,000元，需試算2.11%二代健保補充保費；若符合免扣資格，則不扣補充保費。',
             '92': '其他所得。本工具預設不扣繳、不試算2.11%補充保費；實際仍應依所得性質確認。'
         }
     };
@@ -298,8 +335,8 @@ function getIncomeTypeDescription(incomeType) {
 function validateForm() {
     const requiredFields = [
         'name', 'idNumber', 'address', 'phone',
-        'incomeType', 'amount', 'description', 'startDate', 'endDate',
-        'fillDate', 'companyName'
+        'incomeType', 'amount', 'description',
+        'startDate', 'endDate', 'fillDate'
     ];
     
     for (const fieldId of requiredFields) {
@@ -622,7 +659,7 @@ function loadSampleData() {
     // 勞報資料
     document.getElementById('incomeType').value = '9A';
     document.getElementById('amount').value = '10000';
-    document.getElementById('description').value = 'Dominai Serve 功能開發 / 資安檢測 / 系統維護';
+    document.getElementById('description').value = '(按照合作契約項目內容填寫)';
     
     // 設定日期
     const today = new Date();

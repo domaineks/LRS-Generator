@@ -91,6 +91,19 @@
                         <input type="number" id="amount" required min="0" step="1">
                     </div>
 
+                    <div class="form-group" id="isBonusGroup" style="display:none;">
+                        <label for="isBonus">此筆為獎金（非固定薪資）</label>
+                        <select id="isBonus">
+                            <option value="no">否</option>
+                            <option value="yes">是</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" id="insuredAmountGroup" style="display:none;">
+                        <label for="insuredAmount">當月投保金額</label>
+                        <input type="number" id="insuredAmount" min="0" step="1" placeholder="例：45800">
+                    </div>
+
                     <div class="form-group full-width">
                         <label for="description">勞務內容 *</label>
                         <textarea id="description" required rows="3"></textarea>
