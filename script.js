@@ -16,8 +16,8 @@ const TAX_CONSTANTS = {
         LOCAL: {
             // 50 薪資所得改由 calculateSalaryWithholding2026() 依 115 年度薪資扣繳公式試算
             '50': { threshold: 90501, rate: null },
-            '9A': { threshold: 20001, rate: null },
-            '9B': { threshold: 20001, rate: null },
+            '9A': { threshold: 20001, rate: 0.10 },
+            '9B': { threshold: 20001, rate: 0.10 },
             '92': { threshold: Infinity, rate: 0 }
         },
     }
@@ -651,15 +651,15 @@ function resetForm() {
 function loadSampleData() {
     // 基本資料
     document.getElementById('name').value = '林小明';
-    document.getElementById('idNumber').value = 'A123456789';
+    document.getElementById('idNumber').value = 'F123456789';
     document.getElementById('hasUnion').value = 'no';
-    document.getElementById('address').value = '台北市信義區信義路五段7號';
-    document.getElementById('phone').value = '0912345678';
+    document.getElementById('address').value = '台北市內湖區民權東路六段123巷123號';
+    document.getElementById('phone').value = '0928123456';
     
     // 勞報資料
     document.getElementById('incomeType').value = '9A';
-    document.getElementById('amount').value = '10000';
-    document.getElementById('description').value = '(按照合作契約項目內容填寫)';
+    document.getElementById('amount').value = '29000';
+    document.getElementById('description').value = 'NYCU GPT 雙核心 AI Agent 系統開發';
     
     // 設定日期
     const today = new Date();
@@ -676,7 +676,7 @@ function loadSampleData() {
     // 支付資料
     document.getElementById('paymentMethod').value = 'transfer';
     document.getElementById('bankName').value = '013 國泰世華';
-    document.getElementById('bankBranch').value = '營業部';
+    document.getElementById('bankBranch').value = '東湖分行';
     document.getElementById('accountNumber').value = '1234567890123';
     document.getElementById('accountName').value = '林小明';
     
